@@ -1,51 +1,58 @@
-const express = require('express')
-const app = express()
-const mysql = require('mysql')
+var createError = require('http-errors');
+var express = require('express');
+var path = require('path');
+var cookieParser = require('cookie-parser');
+var logger = require('morgan');
+var mysql = require('mysql');
+var indexRouter = require('./routes/index');
+var usersRouter = require('./routes/users');
 
-app.get('/', (req, res) => {
+var app = express();
 
-    //for testing
-    console.log("root directory is called...")
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
 
-    const connection = mysql.createConnection({
-        host: '192.168.235.1',
-        user: 'b00057412',
-        password: 'b00057412',
-        database: 'one'
-    })
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
 
-    // for server
-    console.log("connection established with server...")
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
 
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  next(createError(404));
+});
 
-    connection.connect(function(error){
-        
-    })
+//sql database connect
+var con = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'bob',
+    database: 'one'
+});
 
-    //------------------
-    // connection.connect(function(err) {
-    //     if (err) throw err;
-    //     console.log("Connected!");
-    //     con.query("SELECT * FROM jiro", function (err, result) {
-    //       if (err) throw err;
-    //       console.log("Result: " + result);
-    //     });
-    //   });
-    //-----------------
+con.connect(function(err) {
+    if (err) throw err;
+    console.log("Connected!");
+    con.query('SELECT * FROM jiro', function (err, result) {
+        if (err) throw err;
+        console.log("Result: " + JSON.stringify(result));
+    });
+});
 
-    connection.query("SELECT * FROM jiro", (err, rows, fields) => {
-        res.json(rows)
-        //for testings
-        console.log(err)
-        console.log(rows)
-        console.log("fetching the db...")
-    })
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-    console.log("done")
+  // render the error page
+  res.status(err.status || 500);
+  res.render('error');
+});
 
-    // res.end()
-})
-
-app.listen(3004, () => {
-    console.log("server is up and listening on 3004")
-})
+module.exports = app;
